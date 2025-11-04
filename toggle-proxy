@@ -1,0 +1,63 @@
+#!/bin/bash
+HOST_IP=$(ip route | grep default | awk '{print $3}')
+PROXY_PORT=10808
+PROXY_URL="http://$HOST_IP:$PROXY_PORT"
+APT_PROXY_FILE="/etc/apt/apt.conf.d/99proxy"
+TEST_URL="https://www.google.com/generate_204"
+ENV_FILE="/etc/environment"
+LOG_FILE="/var/log/toggle-proxy.log"
+
+#log
+if [ ! -f "$LOG_FILE" ]; then
+	sudo touch "$LOG_FILE"
+	sudo chmod 666 "$LOG_FILE"
+fi
+
+log_entry() {
+	local STATUS="$1"
+	local MSG="$2"
+	echo "$(date '+%Y-%m-%d %H:%M:%S') | $STATUS | $MSG" >> "$LOG_FILE"
+}
+
+#enable & disable system-wide proxy
+enable_proxy() {
+        export http_proxy=$PROXY_URL
+        export https_proxy=$PROXY_URL
+        export all_proxy="socks5://$HOST_IP:$PROXY_PORT"
+        
+	echo "Acquire::http::proxy \"$PROXY_URL\";" | sudo tee $APT_PROXY_FILE >/dev/null
+	echo "Acquire::https::proxy \"$PROXY_URL\";" | sudo tee -a $APT_PROXY_FILE >/dev/null
+		
+	#Add to /etc/environment
+	sudo sed -i '/http_proxy/d' $ENV_FILE 2>/dev/null
+	sudo sed -i '/https_proxy/d' $ENV_FILE 2>/dev/null
+	sudo sed -i '/all_proxy/d' $ENV_FILE 2>/dev/null
+	
+	echo "http_proxy=$PROXY_URL" | sudo tee -a $ENV_FILE >/dev/null
+	echo "https_proxy=$PROXY_URL" | sudo tee -a $ENV_FILE >/dev/null
+	echo "all_proxy=socks5://$HOST_IP:$PROXY_PORT" | sudo tee -a $ENV_FILE >/dev/null
+
+	sudo systemctl restart snapd >/dev/null 2>&1
+	echo "Proxy Enabled Via v2rayN ($PROXY_URL)"
+	log_entry "ENABLED" "Proxy set to $PROXY_URL"
+}
+disable_proxy(){
+	unset http_proxy https_proxy all_proxy
+	sudo rm -f $APT_PROXY_FILE
+	
+	sudo sed -i '/http_proxy/d' $ENV_FILE 2>/dev/null
+        sudo sed -i '/https_proxy/d' $ENV_FILE 2>/dev/null
+        sudo sed -i '/all_proxy/d' $ENV_FILE 2>/dev/null
+
+	sudo systemctl restart snapd >/dev/null 2>&1
+	echo "Proxy Disabled (direct connection)"
+	log_entry "DISABLED" "Proxy removed"
+}
+
+#check if proxy port reachable on windows host
+echo "Checking v2rayN connectivity..."
+if curl -s --max-time 3 --proxy $PROXY_URL $TEST_URL >/dev/null; then
+	enable_proxy
+else
+	disable_proxy
+fi
