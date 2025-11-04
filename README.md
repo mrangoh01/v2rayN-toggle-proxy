@@ -27,3 +27,26 @@ When it’s off, the script restores normal direct connection automatically.
 
    ```bash
    sudo nano /usr/local/bin/toggle-proxy
+2. Make it executable:
+
+   ```bash
+   sudo chmod +x /usr/local/bin/toggle-proxy
+4. Run automatically at terminal startup(Optional):
+   
+   ```bash
+   echo "toggle-proxy" >> ~/.bashrc
+   
+## Notes
+
+1.Check the v2rayN using ports on Host machine (default 10808 for https & 10809 for socks5)
+2.Since I wasn't proficient in Bash Scripting yet, I got little helps from GPT:D
+
+## Log files
+log saved in:
+  "/var/log/toggle-proxy.log"
+
+## Usage
+simply run:
+
+   ```bash
+   toggle-proxy
