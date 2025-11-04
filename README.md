@@ -39,6 +39,7 @@ When it’s off, the script restores normal direct connection automatically.
 ## Notes
 
 1.Check the v2rayN using ports on Host machine (default 10808 for https & 10809 for socks5)
+
 2.Since I wasn't proficient in Bash Scripting yet, I got little helps from GPT:D
 
 ## Log files
